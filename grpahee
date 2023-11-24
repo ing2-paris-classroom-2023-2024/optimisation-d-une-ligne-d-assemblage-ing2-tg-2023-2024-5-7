@@ -1,0 +1,84 @@
+#include <stdio.h>
+#include "string.h"
+#include "stdlib.h"
+#include "graf.h"
+#include "sommet.h"
+
+t_sommet * creerSom(char* nom, int num){
+    t_sommet* ptsommet=NULL; //pointeur sur rien de type t_sommet
+    ptsommet= (t_sommet*) malloc(sizeof (t_graphe)); //allocation de l'espace
+    ptsommet->nom= (char*) malloc(strlen(nom+1)*sizeof (char)); //utilisation strlen pour connaitre taille du nom
+    strcpy(ptsommet->nom, nom);
+    ptsommet->num=num; //initialisation des valeurs
+    return ptsommet;
+
+}
+
+t_graphe * creerGraf(int ordre){
+    t_graphe *graphe=(t_graphe*) malloc(sizeof (t_graphe)); // allocation de l'espace
+    graphe->ordre=ordre;
+    graphe->matAdj= (int**) malloc(ordre*sizeof (int));
+    for (int i = 0; i < ordre; ++i) {
+        graphe->matAdj[i]=(int*)calloc(ordre, sizeof (int)); // calloc alloue et initialise à 0
+    }
+    graphe->sommet=(t_sommet*) malloc(ordre*sizeof (t_sommet));
+    return graphe; //retourne l'adresse du graphe
+}
+
+void initialiserGraf(int ordre, t_graphe*graphe){ //meme principe que fonction precedente
+    graphe->ordre=ordre;
+    graphe->matAdj=(int**) malloc(ordre*sizeof (int*));
+    for (int i = 0; i < ordre; ++i) {
+        graphe->matAdj[i]= (int*) calloc(ordre, sizeof (int));
+    }
+    graphe->sommet = (t_sommet*) malloc(ordre*sizeof (t_sommet));
+
+}
+
+void lireFichier (char* nomFichier, t_graphe * graphe) {                           // creation du sous-programme
+    FILE *fichier = NULL;
+    fichier = fopen(nomFichier, "r");
+    if(fichier == NULL){
+        fprintf(stderr, "Erreur lors de l'ouverture du fichier. \n");           // verification lors de l'ouverture du fichier
+        exit(EXIT_FAILURE);
+    }
+    int ordre;                                                                 // initialisation de l'ordre
+    fscanf(fichier, "%d", &ordre);                                  // stocker un numéro dans le fichier
+    initialiserGraf(ordre, graphe);
+    for(int i = 0; i < ordre; i++) {
+        char nomSommet[100];
+        fscanf(fichier, "%s", nomSommet);
+        graphe->sommet[i] = *creerSom(nomSommet, i);
+    }
+    for (int i = 0; i < ordre; i++) {
+        for (int j = 0; j < ordre; j++){
+            fscanf(fichier, "%d", &(graphe->matAdj[i][j]));
+        }
+    }
+
+    fclose(fichier);                                                          // fermeture du fichier
+}
+
+void influence(t_graphe * graphe) {                                               // creation d'un sous-programme
+    printf("Jeux d'influences :\n");
+    for (int i=0; i < graphe->ordre; i++ ){
+        for(int j=0; j< graphe->ordre; j++){
+            if(graphe->matAdj[i][j] == 1){
+                printf("%s influence %s\n", graphe->sommet[i].nom, graphe->sommet[j].nom);  // recherche des 1 dans la matrice avec des boucles
+            }
+        }
+    }
+}
+
+int main() {
+    int ordre;
+    printf("entrez l'ordre du graphe:");                            // demande l'ordre du fichier à l'utilisateur
+    scanf("%d", &ordre);
+    t_graphe * ptgraphe = creerGraf(ordre);
+    char nomFichier[100];
+    printf("Veuillez entrer le nom du fichier : ");
+    scanf("%s", nomFichier);
+    lireFichier(nomFichier, ptgraphe);                                 // appelle le sous-programme
+    influence(ptgraphe);                                               // appelle le sous-programme
+    return 0;
+}
