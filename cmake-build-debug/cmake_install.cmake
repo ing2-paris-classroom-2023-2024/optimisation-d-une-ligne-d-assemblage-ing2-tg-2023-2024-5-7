@@ -1,4 +1,4 @@
-# Install script for directory: C:/Users/mario/Desktop/CLionProjects-ING2/optimisation-d-une-ligne-d-assemblage-ing2-tg-2023-2024-5-7
+# Install script for directory: C:/Users/mario/Desktop/optimisation-d-une-ligne-d-assemblage-ing2-tg-2023-2024-5-7
 
 # Set the install prefix
 if(NOT DEFINED CMAKE_INSTALL_PREFIX)
@@ -45,5 +45,5 @@ endif()
 
 string(REPLACE ";" "\n" CMAKE_INSTALL_MANIFEST_CONTENT
        "${CMAKE_INSTALL_MANIFEST_FILES}")
-file(WRITE "C:/Users/mario/Desktop/CLionProjects-ING2/optimisation-d-une-ligne-d-assemblage-ing2-tg-2023-2024-5-7/cmake-build-debug/${CMAKE_INSTALL_MANIFEST}"
+file(WRITE "C:/Users/mario/Desktop/optimisation-d-une-ligne-d-assemblage-ing2-tg-2023-2024-5-7/cmake-build-debug/${CMAKE_INSTALL_MANIFEST}"
      "${CMAKE_INSTALL_MANIFEST_CONTENT}")
