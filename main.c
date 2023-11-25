@@ -74,6 +74,9 @@ int main() {
     return 0;
 }*/
 
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
 
 ///VERSIONS2
 #include <stdio.h>
@@ -161,157 +164,102 @@ int main() {
     return 0;
 }
 
-///VERSION 3 DE EXCLUSIONS trop compliquée
-/*
+*/
+
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+
 
 #include <stdio.h>
 #include <stdlib.h>
 
-#define MAX_VERTICES 100
+typedef struct {
+    int op1;
+    int op2;
+} Edge;
 
-struct Graph {
-    int V;
-    int **adjMatrix;
-};
+typedef struct {
+    int operation;
+    int station;
+} Node;
 
-struct Graph *createGraph(int V) {
-    struct Graph *graph = (struct Graph *)malloc(sizeof(struct Graph));
-    graph->V = V;
+int calculerStationsMinimales(Edge *graph, int numEdges, int numTasks, int **stations, int *numStations) {
+    Node *nodes = (Node *)malloc(numTasks * sizeof(Node));
 
-    graph->adjMatrix = (int **)malloc(V * sizeof(int *));
-    for (int i = 0; i < V; i++) {
-        graph->adjMatrix[i] = (int *)malloc(V * sizeof(int));
-        for (int j = 0; j < V; j++) {
-            graph->adjMatrix[i][j] = 0;
+    for (int i = 0; i < numTasks; ++i) {
+        nodes[i].operation = i + 1;
+        nodes[i].station = 0;
+    }
+
+    for (int i = 0; i < numEdges; ++i) {
+        int op1 = graph[i].op1;
+        int op2 = graph[i].op2;
+
+        if (nodes[op1 - 1].station >= nodes[op2 - 1].station) {
+            nodes[op2 - 1].station = nodes[op1 - 1].station + 1;
         }
     }
 
-    return graph;
-}
-
-void addEdge(struct Graph *graph, int src, int dest) {
-    graph->adjMatrix[src][dest] = 1;
-    graph->adjMatrix[dest][src] = 1;
-}
-
-void printColors(int colors[], int V) {
-    printf("Coloration du graphe : \n");
-    for (int i = 0; i < V; i++) {
-        printf("Sommet %d --> Couleur %d\n", i + 1, colors[i]);
-    }
-}
-
-int isSafe(struct Graph *graph, int v, int c, int colors[]) {
-    for (int i = 0; i < graph->V; i++) {
-        if (graph->adjMatrix[v][i] && colors[i] == c) {
-            return 0;
+    *numStations = 0;
+    for (int i = 0; i < numTasks; ++i) {
+        if (nodes[i].station > *numStations) {
+            *numStations = nodes[i].station;
         }
     }
-    return 1;
-}
 
-int graphColoringUtil(struct Graph *graph, int m, int v, int colors[], int exclusions[][2], int numExclusions) {
-    if (v == graph->V) {
-        return 1;
-    }
+    *stations = (int *)malloc((*numStations) * sizeof(int));
 
-    for (int c = 1; c <= m; c++) {
-        int isSafeColor = 1;
-
-        // Vérifier si la couleur est exclue pour le sommet actuel
-        for (int i = 0; i < numExclusions; i++) {
-            if ((v + 1 == exclusions[i][0] && colors[exclusions[i][1] - 1] == c) ||
-                (v + 1 == exclusions[i][1] && colors[exclusions[i][0] - 1] == c)) {
-                isSafeColor = 0;
-                break;
+    for (int i = 0; i < *numStations; ++i) {
+        printf("Station %d: ", i + 1);
+        for (int j = 0; j < numTasks; ++j) {
+            if (nodes[j].station == i + 1) {
+                printf("%d ", nodes[j].operation);
             }
         }
-
-        if (isSafe(graph, v, c, colors) && isSafeColor) {
-            colors[v] = c;
-
-            if (graphColoringUtil(graph, m, v + 1, colors, exclusions, numExclusions)) {
-                return 1;
-            }
-
-            colors[v] = 0;
-        }
+        printf("\n");
     }
 
-    return 0;
-}
+    free(nodes);
 
-void graphColoring(struct Graph *graph, int m, int exclusions[][2], int numExclusions) {
-    int *colors = (int *)malloc(graph->V * sizeof(int));
-    for (int i = 0; i < graph->V; i++) {
-        colors[i] = 0;
-    }
-
-    if (graphColoringUtil(graph, m, 0, colors, exclusions, numExclusions)) {
-        printColors(colors, graph->V);
-    } else {
-        printf("Aucune coloration possible avec %d couleurs.\n", m);
-    }
-
-    free(colors);
+    return *numStations;
 }
 
 int main() {
-    FILE *file = fopen("exclusions.txt", "r");
-    if (file == NULL) {
-        printf("Erreur lors de l'ouverture du fichier.\n");
+    FILE *file = fopen("precedences.txt", "r");
+    if (!file) {
+        perror("Erreur lors de l'ouverture du fichier");
         return 1;
     }
 
-    int V = 0;
-    int src, dest;
+    int numEdges = 0;
+    int op1, op2;
+    while (fscanf(file, "%d %d", &op1, &op2) == 2) {
+        numEdges++;
+    }
 
-    while (fscanf(file, "%d %d", &src, &dest) == 2) {
-        if (src > V) V = src;
-        if (dest > V) V = dest;
+    Edge *graph = (Edge *)malloc(numEdges * sizeof(Edge));
+
+    rewind(file);
+
+    for (int i = 0; i < numEdges; ++i) {
+        fscanf(file, "%d %d", &graph[i].op1, &graph[i].op2);
     }
 
     fclose(file);
 
-    struct Graph *graph = createGraph(V);
+    int numTasks = numEdges + 1;
+    int *stations;
+    int numStations = calculerStationsMinimales(graph, numEdges, numTasks, &stations, &numStations);
 
-    file = fopen("exclusions.txt", "r");
-    if (file == NULL) {
-        printf("Erreur lors de l'ouverture du fichier.\n");
-        return 1;
-    }
+    printf("Le nombre minimal de stations nécessaires est : %d\n", numStations);
 
-    while (fscanf(file, "%d %d", &src, &dest) == 2) {
-        addEdge(graph, src - 1, dest - 1);
-    }
-
-    fclose(file);
-
-    int numExclusions = 0;
-    file = fopen("exclusions.txt", "r");
-    while (fscanf(file, "%d %d", &src, &dest) == 2) {
-        numExclusions++;
-    }
-
-    fclose(file);
-
-    int exclusions[numExclusions][2];
-    file = fopen("exclusions.txt", "r");
-    for (int i = 0; i < numExclusions; i++) {
-        fscanf(file, "%d %d", &exclusions[i][0], &exclusions[i][1]);
-    }
-
-    fclose(file);
-
-    int m = V;
-    graphColoring(graph, m, exclusions, numExclusions);
-
-    for (int i = 0; i < V; i++) {
-        free(graph->adjMatrix[i]);
-    }
-    free(graph->adjMatrix);
     free(graph);
+    free(stations);
 
     return 0;
-}
- */
+}*/
+
+
+
