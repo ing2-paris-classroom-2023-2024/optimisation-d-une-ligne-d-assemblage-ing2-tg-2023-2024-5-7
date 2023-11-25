@@ -1,0 +1,140 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <stdbool.h>
+#include <string.h>
+
+#define MAX_NODES 7 // Définition de la capacité maximale de nœuds dans le graphe
+
+typedef struct {
+    int capacite;
+    int flot;
+} Arc;
+
+typedef struct {
+    int ordre;
+    char noms[MAX_NODES][2];
+    Arc matrice[MAX_NODES][MAX_NODES];
+} Graphe;
+
+void lireFichier(Graphe *graphe, const char *nomFichier) {
+    // Ouvre le fichier de données du graphe en mode lecture
+    FILE *fichier = fopen(nomFichier, "r");
+
+    if (fichier == NULL) {
+        perror("Erreur lors de l'ouverture du fichier"); // Affiche un message d'erreur si l'ouverture échoue
+        exit(1); // Termine le programme avec un code d'erreur
+    }
+
+    // Lecture de l'ordre du graphe et des noms des nœuds
+    fscanf(fichier, "%d", &graphe->ordre);
+    for (int i = 0; i < graphe->ordre; i++) {
+        fscanf(fichier, "%s", graphe->noms[i]);
+    }
+
+    // Lecture des capacités des arcs et initialisation des flots à zéro
+    for (int i = 0; i < graphe->ordre; i++) {
+        for (int j = 0; j < graphe->ordre; j++) {
+            fscanf(fichier, "%d", &graphe->matrice[i][j].capacite);
+            graphe->matrice[i][j].flot = 0;
+        }
+    }
+
+    fclose(fichier);
+}
+
+// Fonction pour trouver un chemin augmentant dans le graphe résiduel (DFS)
+bool trouverChemin(Graphe *grapheResiduel, int source, int puits, int parent[]) {
+    bool visite[MAX_NODES];
+    memset(visite, false, sizeof(visite));
+
+    visite[source] = true;
+
+    // File pour effectuer un parcours en largeur
+    int file[MAX_NODES];
+    int debut = 0;
+    int fin = 0;
+    file[fin++] = source;
+    parent[source] = -1;
+
+    while (debut != fin) {
+        int sommet = file[debut++];
+
+        for (int voisin = 0; voisin < grapheResiduel->ordre; voisin++) {
+            if (!visite[voisin] && grapheResiduel->matrice[sommet][voisin].capacite - grapheResiduel->matrice[sommet][voisin].flot > 0) {
+                visite[voisin] = true;
+                parent[voisin] = sommet;
+                file[fin++] = voisin;
+            }
+        }
+    }
+
+    return visite[puits];
+}
+
+// Algorithme de Ford-Fulkerson pour calculer le flot maximal
+Graphe felkurson(Graphe graphe, int source, int puits) {
+    Graphe grapheResiduel = graphe;
+    int parent[MAX_NODES];
+    int flotMaximal = 0;
+
+    while (trouverChemin(&grapheResiduel, source, puits, parent)) {
+        int flotChemin = INT_MAX; // Initialise la valeur du flot du chemin au maximum possible
+
+        for (int sommet = puits; sommet != source; sommet = parent[sommet]) {
+            int parentSommet = parent[sommet];
+            int capaciteRestante = grapheResiduel.matrice[parentSommet][sommet].capacite - grapheResiduel.matrice[parentSommet][sommet].flot;
+            flotChemin = (capaciteRestante < flotChemin) ? capaciteRestante : flotChemin;
+        }
+
+        for (int sommet = puits; sommet != source; sommet = parent[sommet]) {
+            int parentSommet = parent[sommet];
+            grapheResiduel.matrice[parentSommet][sommet].flot += flotChemin;
+            grapheResiduel.matrice[sommet][parentSommet].flot -= flotChemin;
+        }
+
+        flotMaximal += flotChemin;
+    }
+
+    // Mise à jour du graphe d'origine avec les flots calculés
+    for (int i = 0; i < graphe.ordre; i++) {
+        for (int j = 0; j < graphe.ordre; j++) {
+            graphe.matrice[i][j].flot = grapheResiduel.matrice[i][j].flot;
+        }
+    }
+
+    printf("Flot Maximal : %d\n", flotMaximal);
+    return graphe;
+}
+
+// Fonction pour calculer les écarts du graphe des flots et retourner le graphe d'écart
+Graphe getEcart(Graphe grapheFlot) {
+    Graphe grapheEcart = grapheFlot;
+
+    for (int i = 0; i < grapheFlot.ordre; i++) {
+        for (int j = 0; j < grapheFlot.ordre; j++) {
+            int capacite = grapheFlot.matrice[i][j].capacite;
+            int flot = grapheFlot.matrice[i][j].flot;
+            grapheEcart.matrice[i][j].capacite = capacite - flot;
+            grapheEcart.matrice[i][j].flot = 0;
+        }
+    }
+
+    return grapheEcart;
+}
+
+int main() {
+    Graphe graphe;
+    lireFichier(&graphe, "graphe.txt"); // Charge les données du graphe à partir du fichier "graphe.txt"
+
+    // la source et le puits en fonction du graphe
+    int source = 0; // L'indice du nœud source
+    int puits = 6;  // L'indice du nœud puits
+
+    Graphe grapheFlot = felkurson(graphe, source, puits); // Applique l'algorithme de Ford-Fulkerson
+
+    // le graphe d'écart
+    Graphe grapheEcart = getEcart(grapheFlot);
+
+
+    return 0;
+}
