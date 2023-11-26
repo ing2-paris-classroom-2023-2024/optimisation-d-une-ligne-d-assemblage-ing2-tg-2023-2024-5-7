@@ -1,0 +1,17 @@
+#ifndef TP6_3_HEADER_H
+#define TP6_3_HEADER_H
+#define MAX_TAILLE 10
+
+typedef struct {
+    int nbsommets; // Nombre de sommets
+    char Nomssommets[MAX_TAILLE]; // Tableau pour stocker les noms des sommets
+    int Matcapacite[MAX_TAILLE][MAX_TAILLE]; // Matrice pour stocker les capacités
+    int Matflot[MAX_TAILLE][MAX_TAILLE]; // Matrice pour stocker les flots
+} Graphe;
+
+void lireFichier(char* nomFichier, Graphe* G);
+void initGraphe(Graphe* G);
+int Felkurson(Graphe* G, int source, int puits);
+Graphe getEcart(Graphe* G, int source, int puits);
+
+#endif //TP6_3_HEADER_H
