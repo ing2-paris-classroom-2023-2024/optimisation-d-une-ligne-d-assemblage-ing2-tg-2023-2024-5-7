@@ -1,0 +1,27 @@
+//
+// Created by anton on 15/10/2023.
+//
+
+#ifndef UNTITLED78_HEADER_H
+#define UNTITLED78_HEADER_H
+
+typedef struct Arete { //structure de l'arrete
+    int debut;
+    int fin;
+    int poids;
+} Arete;
+
+typedef struct Noeud { // structure du noeud
+    int sommet;
+    int poids;
+    struct Noeud* suivant;
+} Noeud;
+
+Noeud* creerNoeud(int v, int p);
+void unirEnsembles(int parent[], int x, int y);
+void trierAretes(Arete aretes[], int E);
+void ajouterArete(Noeud* adj[], int src, int dest, int poids);
+void kruskalACM(Arete aretes[], int V, int E);
+void primACM(Noeud* adj[], int V);
+
+#endif //UNTITLED78_HEADER_H
