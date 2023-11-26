@@ -34,7 +34,7 @@ pSommet* CreerArete(pSommet* sommet, int s1, int s2)
 
         // Associe le nouvel arc au sommet s1
         sommet[s1]->arc = nv_arete;
-        return sommet;
+        return sommet; // retourne le sommet
     }
     else
     {
@@ -58,12 +58,12 @@ pSommet* CreerArete(pSommet* sommet, int s1, int s2)
             nv_arete->sommet = temp->sommet;
             temp->sommet = s2;
             temp->arc_suivant = nv_arete;
-            return sommet;
+            return sommet; // retourn le sommet
         }
 
         // Ajoute simplement le nouvel arc à la fin de la liste
         temp->arc_suivant = nv_arete;
-        return sommet;
+        return sommet;// retourn le sommet
     }
 }
 
@@ -91,7 +91,7 @@ Graphe* CreerGraphe(int ordre)
     }
 
     // Retourne le nouveau graphe créé
-    return nvGraphe;
+    return nvGraphe;// retourn le graphe
 }
 
 
