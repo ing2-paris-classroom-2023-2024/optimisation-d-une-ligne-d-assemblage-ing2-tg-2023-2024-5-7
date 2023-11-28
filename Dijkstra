@@ -1,0 +1,409 @@
+#include "graphe.h"
+
+/* affichage des successeurs du sommet num */
+void afficher_SomApres(pSommet * sommet, int num)
+{
+    // Affiche le numéro du sommet en cours de traitement
+    printf(" sommet %d :\n", num);
+
+    // Récupère le pointeur vers le premier arc adjacent du sommet
+    pArc arc = sommet[num]->arc;
+
+    // Parcourt tous les arcs adjacents du sommet
+    while (arc != NULL)
+    {
+        // Affiche le numéro du sommet voisin (successeur)
+        printf("%d ", arc->sommet);
+
+        // Passe au prochain arc adjacent
+        arc = arc->arc_suivant;
+    }
+}
+
+
+// Ajouter l'arête entre les sommets s1 et s2 du graphe
+pSommet* CreerArete(pSommet* sommet, int s1, int s2)
+{
+    // Vérifie si le sommet s1 n'a pas déjà d'arcs adjacents
+    if (sommet[s1]->arc == NULL)
+    {
+        // Crée un nouvel arc et l'initialise avec s2
+        pArc nv_arete = (pArc)malloc(sizeof(struct Arc));
+        nv_arete->sommet = s2;
+        nv_arete->arc_suivant = NULL;
+
+        // Associe le nouvel arc au sommet s1
+        sommet[s1]->arc = nv_arete;
+        return sommet; // retourne le sommet
+    }
+    else
+    {
+        // Si le sommet s1 a déjà des arcs adjacents, parcourt la liste des arcs
+        pArc temp = sommet[s1]->arc;
+        while (!(temp->arc_suivant == NULL))
+        {
+            temp = temp->arc_suivant;
+        }
+
+        // Crée un nouvel arc et l'initialise avec s2
+        pArc nv_arete = (pArc)malloc(sizeof(struct Arc));
+        nv_arete->sommet = s2;
+        nv_arete->arc_suivant = NULL;
+
+        // Si s2 doit être inséré avant un sommet existant dans la liste
+        if (temp->sommet > s2)
+        {
+            // Réorganise les arcs pour insérer s2 à la bonne position
+            nv_arete->arc_suivant = temp->arc_suivant;
+            nv_arete->sommet = temp->sommet;
+            temp->sommet = s2;
+            temp->arc_suivant = nv_arete;
+            return sommet; // retourn le sommet
+        }
+
+        // Ajoute simplement le nouvel arc à la fin de la liste
+        temp->arc_suivant = nv_arete;
+        return sommet;// retourn le sommet
+    }
+}
+
+
+// Crée le graphe
+Graphe* CreerGraphe(int ordre)
+{
+    // Alloue de la mémoire pour le nouveau graphe
+    Graphe* nvGraphe = (Graphe*)malloc(sizeof(Graphe));
+
+    // Alloue de la mémoire pour le tableau de pointeurs vers les sommets du graphe
+    nvGraphe->pSommet = (pSommet*)malloc(ordre * sizeof(pSommet));
+
+    // Initialise chaque sommet dans le graphe
+    for (int i = 0; i < ordre; i++)
+    {
+        // Alloue de la mémoire pour le sommet actuel
+        nvGraphe->pSommet[i] = (pSommet)malloc(sizeof(struct Sommet));
+
+        // Attribue une valeur au sommet (peut être utilisée selon le contexte)
+        nvGraphe->pSommet[i]->valeur = i;
+
+        // Initialise la liste d'arcs adjacents du sommet comme étant vide
+        nvGraphe->pSommet[i]->arc = NULL;
+    }
+
+    // Retourne le nouveau graphe créé
+    return nvGraphe;// retourn le graphe
+}
+
+
+/* La construction du réseau peut se faire à partir d'un fichier dont le nom est passé en paramètre
+Le fichier contient : ordre, taille, orientation (0 ou 1) et une liste des arcs */
+Graphe* lire_graphe(char* nomFichier)
+{
+    Graphe* graphe; // Déclare une variable pour le graphe
+    FILE* ifs = fopen(nomFichier, "r"); // Ouvre le fichier en mode lecture
+    int taille, orientation, ordre, s1, s2;
+
+    if (!ifs) // Vérifie si l'ouverture du fichier a échoué
+    {
+        printf("Erreur de lecture fichier\n");
+        exit(-1); // Quitte le programme avec un code d'erreur
+    }
+
+    // Lit le nombre d'ordre (nombre de sommets) depuis le fichier
+    fscanf(ifs, "%d", &ordre);
+
+    // Crée un nouveau graphe avec le nombre d'ordre de sommets lus
+    graphe = CreerGraphe(ordre);
+
+    // Lit le nombre de taille (nombre d'arcs) depuis le fichier
+    fscanf(ifs, "%d", &taille);
+
+    // Lit l'information d'orientation (0 ou 1) depuis le fichier
+    fscanf(ifs, "%d", &orientation);
+
+    // Met à jour les informations d'orientation et d'ordre dans le graphe
+    graphe->orientation = orientation;
+    graphe->ordre = ordre;
+
+    // Crée les arêtes du graphe en parcourant la liste des arcs dans le fichier
+    for (int i = 0; i < taille; ++i)
+    {
+        fscanf(ifs, "%d%d", &s1, &s2);
+        graphe->pSommet = CreerArete(graphe->pSommet, s1, s2);
+
+        // Si le graphe n'est pas orienté, crée également l'arc inverse
+        if (!orientation)
+            graphe->pSommet = CreerArete(graphe->pSommet, s2, s1);
+    }
+
+    fclose(ifs); // Ferme le fichier après lecture
+
+    return graphe; // Renvoie le graphe construit
+}
+
+
+/* Affichage du graphe avec les successeurs de chaque sommet */
+void graphe_afficher(Graphe* graphe)
+{
+    // Affiche le titre du graphe
+    printf("graphe\n");
+
+    // Affiche l'information sur l'orientation du graphe
+    if (graphe->orientation)
+        printf("oriente\n");
+    else
+        printf("non oriente\n");
+
+    // Affiche l'ordre (nombre de sommets) du graphe
+    printf("ordre = %d\n", graphe->ordre);
+
+    // Affiche les listes d'adjacence pour chaque sommet
+    printf("listes d'adjacence :\n");
+
+    // Parcourt chaque sommet du graphe
+    for (int i = 0; i < graphe->ordre; i++)
+    {
+        // Appelle la fonction afficher_SomApres pour afficher les successeurs du sommet
+        afficher_SomApres(graphe->pSommet, i);
+
+        // Ajoute une ligne vide pour séparer les listes d'adjacence des sommets
+        printf("\n");
+    }
+}
+
+
+/// CREATION DE LA FILE ///
+File* creation_de_file(unsigned capa) {
+    // Alloue de la mémoire pour une nouvelle file
+    File* file = (File*)malloc(sizeof(File));
+
+    // Initialise la capacité, le début, la fin et la taille de la file
+    file->capa = capa;
+    file->debut = file->taille = 0;
+    file->fin = capa - 1;
+
+    // Alloue de la mémoire pour le tableau de la file
+    file->tab = (int*)malloc(capa * sizeof(int));
+
+    return file; // Renvoie la file nouvellement créée
+}
+
+/// FILE COMPLETE ///
+int FilePleine(File* file) {
+    return (file->taille == file->capa); // Vérifie si la file est pleine
+}
+
+/// FILE VIDE ///
+int FileVide(File* file) {
+    return (file->taille == 0); // Vérifie si la file est vide
+}
+
+///AJOUTER UN ELEMENT DANS LA FILE ///
+void enfiler(File* file, int un_som) {
+    if (FilePleine(file)) return; // Si la file est pleine, ne rien faire
+    file->fin = (file->fin + 1) % file->capa; // Avance la position de fin circulairement
+    file->tab[file->fin] = un_som; // Ajoute un élément à la fin
+    file->taille = file->taille + 1; // Augmente la taille de la file
+}
+
+/// RETIRER UN ELEMENT DE LA FILE ///
+int defiler(File* file) {
+    if (FileVide(file)) return -1; // Si la file est vide, renvoyer une valeur par défaut (ici -1)
+    int un_som = file->tab[file->debut]; // Récupère l'élément à la position de début
+    file->debut = (file->debut + 1) % file->capa; // Avance la position de début circulairement
+    file->taille = file->taille - 1; // Diminue la taille de la file
+    return un_som; // Renvoie l'élément retiré de la file
+}
+
+
+/// Implémentation de BFS ///
+void BFS(Graphe* graphe, int sommet_initial, int sommet_final) {
+    // Alloue de la mémoire pour les tableaux de marquage et de précédents
+    int* parcouru = (int*)malloc(graphe->ordre * sizeof(int));
+    int* sommet_precedent = (int*)malloc(graphe->ordre * sizeof(int));
+
+    // Initialise les tableaux de marquage et de précédents
+    for (int i = 0; i < graphe->ordre; i++) {
+        parcouru[i] = 0; // Initialise à 0 (non marqué)
+        sommet_precedent[i] = -1; // Initialise à -1 (pas de précédent)
+    }
+
+    File* file = creation_de_file(graphe->ordre); // Crée une file pour le BFS
+
+    parcouru[sommet_initial] = 1; // Marque le sommet initial comme visité
+    enfiler(file, sommet_initial); // Enfile le sommet initial
+
+    // Parcours BFS
+    while (!FileVide(file)) {
+        int sommet_actuel = defiler(file); // Défile le sommet actuel
+        pArc arc = graphe->pSommet[sommet_actuel]->arc;
+
+        // Parcourt les arcs adjacents du sommet actuel
+        while (arc != NULL) {
+            int sommet_voisin = arc->sommet;
+            if (!parcouru[sommet_voisin]) { // Si le voisin n'est pas marqué
+                parcouru[sommet_voisin] = 1; // Marque le voisin comme visité
+                sommet_precedent[sommet_voisin] = sommet_actuel; // Enregistre le précédent
+                enfiler(file, sommet_voisin); // Enfile le voisin pour exploration ultérieure
+            }
+            arc = arc->arc_suivant;
+        }
+    }
+
+    // Affiche le chemin BFS entre les sommets initial et final
+    printf("Chemin BFS de %d vers %d : ", sommet_initial, sommet_final);
+    afficher_le_chemin(sommet_precedent, sommet_initial, sommet_final, graphe);
+
+    // Libère la mémoire allouée
+    free(parcouru);
+    free(sommet_precedent);
+    free(file->tab);
+    free(file);
+}
+
+
+/// Implémentation de DFS ///
+void DSF(Graphe* graphe, int sommet_initial, int sommet_final) {
+    // Alloue de la mémoire pour les tableaux de marquage et de précédents
+    int* parcouru = (int*)malloc(graphe->ordre * sizeof(int));
+    int* sommet_precedent = (int*)malloc(graphe->ordre * sizeof(int));
+
+    // Initialise les tableaux de marquage et de précédents
+    for (int i = 0; i < graphe->ordre; i++) {
+        parcouru[i] = 0; // Initialise à 0 (non marqué)
+        sommet_precedent[i] = -1; // Initialise à -1 (pas de précédent)
+    }
+
+    // Affiche le message de début pour le chemin DFS
+    printf("Chemin DFS de %d vers %d : ", sommet_initial, sommet_final);
+
+    // Appelle la fonction récursive DFS pour trouver le chemin
+    DSFRec(graphe, sommet_initial, parcouru, sommet_precedent, sommet_final, sommet_initial);
+
+    // Libère la mémoire allouée
+    free(parcouru);
+    free(sommet_precedent);
+}
+
+// Fonction récursive pour le DFS
+void DSFRec(Graphe* graphe, int sommet, int* parcouru, int* sommet_precedent, int sommet_final, int sommet_initial) {
+    parcouru[sommet] = 1; // Marque le sommet actuel comme visité
+
+    if (sommet == sommet_final) { // Si le sommet final est atteint
+        // Affiche le chemin DFS trouvé
+        afficher_le_chemin(sommet_precedent, sommet_initial, sommet_final, graphe);
+        return;
+    }
+
+    pArc arc = graphe->pSommet[sommet]->arc; // Récupère la liste des arcs adjacents
+    while (arc != NULL) {
+        int sommet_voisin = arc->sommet;
+        if (!parcouru[sommet_voisin]) { // Si le voisin n'est pas marqué
+            sommet_precedent[sommet_voisin] = sommet; // Enregistre le précédent
+            // Appelle récursivement DFS sur le voisin
+            DSFRec(graphe, sommet_voisin, parcouru, sommet_precedent, sommet_final, sommet_initial);
+        }
+        arc = arc->arc_suivant; // Passe à l'arc suivant
+    }
+}
+
+
+/// Fonction pour imprimer le chemin ///
+void afficher_le_chemin(int* sommet_precedent, int sommet_initial, int sommet_final, Graphe *graphe) {
+    if (sommet_precedent[sommet_final] == -1) {
+        // Si le sommet final n'a pas de précédent, il n'y a pas de chemin trouvé.
+        printf("Pas de chemin trouve.\n");
+        return;
+    }
+
+    int chemin[graphe->ordre];
+    int tailleChemin = 0; // Initialise la taille du chemin à 0
+    int sommetActuel = sommet_final; // Initialise le sommet actuel avec le sommet final
+
+    // Remplit le tableau du chemin en suivant les précédents
+    while (sommetActuel != -1) {
+        chemin[tailleChemin++] = sommetActuel;
+        sommetActuel = sommet_precedent[sommetActuel];
+    }
+
+    // Affiche le chemin en commençant par le sommet initial et en remontant vers le sommet final
+    for (int i = tailleChemin - 1; i >= 0; i--) {
+        printf("%d ", chemin[i]);
+    }
+    printf("\n");
+}
+
+// Fonction auxiliaire pour la recherche en profondeur (DFS) des composantes connexes
+void DFS_composantes_connexes(Graphe* graphe, int sommet, int* parcouru, int composante) {
+    parcouru[sommet] = 1; // Marque le sommet actuel comme visité
+    printf("%d ", sommet); // Affiche le sommet visité
+
+    pArc arc = graphe->pSommet[sommet]->arc;
+    while (arc != NULL) {
+        int voisin = arc->sommet;
+        if (!parcouru[voisin]) { // Si le voisin n'est pas marqué
+            DFS_composantes_connexes(graphe, voisin, parcouru, composante); // Appelle récursivement DFS
+        }
+        arc = arc->arc_suivant; // Passe à l'arc suivant
+    }
+}
+
+// Fonction pour trouver et afficher les composantes connexes d'un graphe non orienté
+void composantes_connexes(Graphe* graphe) {
+    int* parcouru = (int*)malloc(graphe->ordre * sizeof(int));
+    int composante = 1;
+
+    // Initialisation du tableau de marquage
+    for (int i = 0; i < graphe->ordre; i++) {
+        parcouru[i] = 0;
+    }
+
+    // Parcours du graphe
+    for (int i = 0; i < graphe->ordre; i++) {
+        if (!parcouru[i]) { // Si le sommet n'est pas marqué
+            printf("Composante connexe %d : ", composante); // Affiche le numéro de la composante
+            DFS_composantes_connexes(graphe, i, parcouru, composante); // Appelle DFS pour la composante
+            printf("\n"); // Nouvelle ligne pour la prochaine composante
+            composante++; // Incrémente le numéro de composante
+        }
+    }
+
+    free(parcouru); // Libère la mémoire allouée pour le tableau de marquage
+}
+
+
+int main()
+{
+    Graphe * g; // Déclaration d'un pointeur vers un graphe
+
+    char nom_fichier[50]; // Variable pour stocker le nom du fichier du labyrinthe
+
+    int sommet_initial, sommet_final; // Variables pour les sommets initial et final
+
+    // Demande à l'utilisateur de saisir le nom du fichier du labyrinthe
+    printf("Entrer le nom du fichier du labyrinthe 'oriente.txt' ou 'pas_oriente.txt' : ");
+    gets(nom_fichier);
+
+    // Lecture du graphe à partir du fichier
+    g = lire_graphe(nom_fichier);
+
+    // Saisie du numéro du sommet initial pour lancer un BFS puis un DFS
+    printf("Numero du sommet initial (faire -2 pour le \n graphe oriente, pour avoir des sommets qui vont de 0 a 10) : ");
+    scanf ("%d", &sommet_initial);
+
+    printf ("Numero du sommet final: ");
+    scanf ("%d", &sommet_final);
+
+    /// UTILISATION DE BSF ET DE DFS///
+    BFS (g, sommet_initial, sommet_final); // Appel à la fonction de BFS
+    DSF (g, sommet_initial, sommet_final); // Appel à la fonction de DFS
+
+    /// Recherche et affichage des composantes connexes
+    printf("\nComposantes connexes :\n");
+    composantes_connexes(g); // Appel à la fonction pour trouver et afficher les composantes connexes
+
+    /// Afficher le graphe
+    graphe_afficher(g); // Appel à la fonction pour afficher le graphe
+
+    return 0; // Fin du programme
+}

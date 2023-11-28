@@ -1,0 +1,178 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include "header.h"
+#include <limits.h>
+
+Noeud* creerNoeud(int v, int p) {      //creation d'un noeud
+    Noeud* nouveauNoeud = (Noeud*)malloc(sizeof(Noeud)); //allouer de l'espace
+    nouveauNoeud->sommet = v;           //initialiser avec les valeurs en parametre
+    nouveauNoeud->poids = p;
+    nouveauNoeud->suivant = NULL;
+    return nouveauNoeud;
+}
+
+void ajouterArete(Noeud* adj[], int src, int dest, int poids) {
+    Noeud* nouveauNoeud = creerNoeud(dest, poids);
+    nouveauNoeud->suivant = adj[src];
+    adj[src] = nouveauNoeud;      //pointe vers le nouveau noeud
+}
+
+int trouverParent(int parent[], int i) {
+    if (parent[i] == -1)                    //determine si le sommet i est deja racine de son cycle
+        return i;
+    return trouverParent(parent, parent[i]);  //appel recursif de la fonction avec cette fois sommet precedent de i
+}
+
+void unirEnsembles(int parent[], int x, int y) {   //permettra de trouver le poids total en creant un ensemble
+    int xRacine = trouverParent(parent, x);
+    int yRacine = trouverParent(parent, y);
+    parent[xRacine] = yRacine;
+}
+
+void trierAretes(Arete aretes[], int E) {
+    for (int i = 0; i < E - 1; i++) {     //boucle qui parcours tout les elements du tableau
+        for (int j = 0; j < E - i - 1; j++) {   //boucle pour trier les arretes
+            if (aretes[j].poids > aretes[j + 1].poids) {  //comparaison des poids
+                Arete temp = aretes[j];
+                aretes[j] = aretes[j + 1];
+                aretes[j + 1] = temp;
+            }
+        }
+    }
+}
+
+void kruskalACM(Arete aretes[], int S, int A) {  // prend en paramettre tableau du graphe avec nombre de sommets et arrêtes
+    Arete resultat[S];       //stocker arretes ACPM
+    int parent[S];           //suivre sommets connectés
+    int nbAretes = 0;
+    for (int i = 0; i < S; i++) {
+        parent[i] = -1;               //montrer que chaque sommet est un cycle distinct
+    }
+    trierAretes(aretes, A); //appel fonction pour trier les arretes
+    for (int i = 0; i < A; i++) {
+        int x = trouverParent(parent, aretes[i].debut);     //determiner sommets precedents
+        int y = trouverParent(parent, aretes[i].fin);
+
+        if (x != y) {                  //condition si sommets appartiennent au mm cycle
+            resultat[nbAretes++] = aretes[i];
+            unirEnsembles(parent, x, y);
+        }
+    }
+    printf("\nArbre couvrant de poids minimal (Kruskal) :\n");  //afficher l'arbre
+    int poidsTotal = 0;
+    for (int i = 0; i < nbAretes; i++) {  //trouver le poids total de l'arbre avec une boucle
+        printf("%d - %d : %d\n", resultat[i].debut, resultat[i].fin, resultat[i].poids);
+        poidsTotal += resultat[i].poids;
+    }
+    printf("Poids total de l'arbre : %d\n", poidsTotal);
+}
+
+void primACM(Noeud* adj[], int V) {
+    int parent[V];
+    int cle[V];
+    int ensembleACM[V];
+
+    for (int i = 0; i < V; i++) {
+        cle[i] = INT_MAX;
+        ensembleACM[i] = 0;
+    }
+
+    cle[0] = 0;
+    parent[0] = -1;
+
+    for (int count = 0; count < V - 1; count++) {
+        int u;
+        int min = INT_MAX;
+
+        for (int v = 0; v < V; v++) {
+            if (ensembleACM[v] == 0 && cle[v] < min) {
+                u = v;
+                min = cle[v];
+            }
+        }
+
+        ensembleACM[u] = 1;
+
+        Noeud* temp = adj[u];
+        while (temp != NULL) {
+            int v = temp->sommet;
+            int poids = temp->poids;
+            if (ensembleACM[v] == 0 && poids < cle[v]) {
+                parent[v] = u;
+                cle[v] = poids;
+            }
+            temp = temp->suivant;
+        }
+    }
+
+    printf("\nArbre couvrant de poids minimal (Prim) :\n");
+    int poidsTotal = 0;
+    for (int i = 1; i < V; i++) {
+        printf("%d - %d : %d\n", parent[i], i, cle[i]);
+        poidsTotal += cle[i];
+    }
+    printf("Poids total de l'arbre : %d\n", poidsTotal);
+}
+
+void menu() {                  //fonction pour afficher le menu
+    printf("\nMenu :\n");
+    printf("1. Afficher l'arbre couvrant minimal (Kruskal)\n");
+    printf("2. Afficher l'arbre couvrant minimal (Prim)\n");
+    printf("3. Quitter\n");
+}
+
+int main() {
+    char nomFichier[100];
+
+    printf("Entrez le nom du fichier texte : ");
+    scanf("%s", nomFichier);
+
+    FILE* fichier = fopen(nomFichier, "r");  //ouverture du fichier
+
+    if (!fichier) {
+        printf("probleme fichier.\n");
+        return 1;
+    }
+
+    int V, E;   //nombre de sommets et arretes du graphe
+    fscanf(fichier, "%d%d", &V, &E);
+    Arete aretes[E];   //tableau qui stocke les arretes
+    Noeud* adj[V];     //tableau liste d'adjacence
+
+    for (int i = 0; i < V; i++) {    //boucle pour initialiser les sommets comme non adjacent a d'aitres
+        adj[i] = NULL;
+    }
+
+    for (int i = 0; i < E; i++) {   //boucle pour parcourir le fichier
+        int debut, fin, poids;
+        fscanf(fichier, "%d%d%d", &debut, &fin, &poids);
+        ajouterArete(adj, debut, fin, poids);   //ajouter arrete a liste d'adjacence
+        ajouterArete(adj, fin, debut, poids);
+        aretes[i].debut = debut;   //stocke informations des arretes dans tableau
+        aretes[i].fin = fin;
+        aretes[i].poids = poids;
+    }
+
+    fclose(fichier);
+    int choix = 0;
+    while (choix != 3) {
+        menu();             //appel de la fonction pour le menu
+        printf("Entrez votre choix : ");
+        scanf("%d", &choix);
+
+        switch (choix) {
+            case 1:
+                kruskalACM(aretes, V, E);
+                break;
+            case 2:
+                primACM(adj, V);
+                break;
+            case 3:
+                printf("Programme termine.\n");
+                break;
+            default:
+                printf("Choix invalide. Veuillez réessayer.\n");
+        }
+    }
+    return 0;
+}
