@@ -77,7 +77,7 @@ int main() {
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 
-
+/*
 ///VERSIONS2
 #include <stdio.h>
 #include <stdlib.h>
@@ -171,7 +171,7 @@ int main() {
 
 
 
-
+/*
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -262,4 +262,81 @@ int main() {
 }*/
 
 
+#include <stdio.h>
+#include <stdlib.h>
 
+#define MAX_NODES 100
+
+// Structure pour représenter un nœud du graphe
+typedef struct Node {
+    int id;
+    struct Node* next;
+} Node;
+
+// Fonction pour créer un nouveau nœud
+Node* createNode(int id) {
+    Node* newNode = (Node*)malloc(sizeof(Node));
+    if (newNode == NULL) {
+        perror("Erreur lors de l'allocation de mémoire");
+        exit(EXIT_FAILURE);
+    }
+    newNode->id = id;
+    newNode->next = NULL;
+    return newNode;
+}
+
+// Fonction pour ajouter une relation de précédence
+void addEdge(Node* graph[], int start, int end) {
+    Node* newNode = createNode(end);
+    newNode->next = graph[start];
+    graph[start] = newNode;
+}
+
+// Fonction pour afficher le graphe
+void printGraph(Node* graph[], int numNodes) {
+    for (int i = 1; i <= numNodes; i++) {
+        printf("%d -> ", i);
+        Node* current = graph[i];
+        while (current != NULL) {
+            printf("%d ", current->id);
+            current = current->next;
+        }
+        printf("\n");
+    }
+}
+
+int main() {
+    FILE *file = fopen("precedences.txt", "r");
+    if (file == NULL) {
+        perror("Erreur lors de l'ouverture du fichier");
+        return 1;
+    }
+
+    int numNodes = 0, numRelations = 0;
+    int start, end;
+
+    // Tableau de listes d'adjacence pour représenter le graphe
+    Node* graph[MAX_NODES + 1] = {NULL};  // Notez l'ajout de "+ 1" pour correspondre à l'index du tableau
+
+    // Lecture des relations de précédence depuis le fichier
+    while (fscanf(file, "%d %d", &start, &end) == 2) {
+        // Mise à jour du nombre de nœuds
+        if (start > numNodes) {
+            numNodes = start;
+        }
+        if (end > numNodes) {
+            numNodes = end;
+        }
+
+        addEdge(graph, start, end);
+        numRelations++;
+    }
+
+    fclose(file);
+
+    // Affichage du graphe
+    printf("Graphe de precedent :\n");
+    printGraph(graph, numNodes);
+
+    return 0;
+}
