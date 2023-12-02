@@ -4,7 +4,7 @@
 void afficher_SomApres(pSommet * sommet, int num)
 {
     // Affiche le numéro du sommet en cours de traitement
-    printf(" sommet %d :\n", num);
+    printf(" sommet %d :\n", num);// affiche le sommet
 
     // Récupère le pointeur vers le premier arc adjacent du sommet
     pArc arc = sommet[num]->arc;
