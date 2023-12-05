@@ -1,339 +1,180 @@
+//
+// Created by ansel on 03/12/2023.
+//
+
+#ifndef PROJET_S3_2_0_HEADER_H
+#define PROJET_S3_2_0_HEADER_H
+
+#endif //PROJET_S3_2_0_HEADER_H
+
 #include <stdio.h>
 #include <stdlib.h>
 
-#define MAX_OP 100
+#define MAXOPE 100
 
-// struct representant les contraintes entre les op
 typedef struct {
-    int preced[MAX_OP][MAX_OP]; // matrice d adjacence pour les precedences
-    int exclusi[MAX_OP][MAX_OP]; // matrice d adjacence pour les exclusions
-    int nbPredecesse[MAX_OP]; // nb de predecesseurs pour chaque ope
-    int nbO; // nb tot d ope
-} Contrainte;
+    int precedences[MAXOPE][MAXOPE];
+    int nbOperations;
+    int operationsTriees[MAXOPE];
+    int nbPredecesseurs[MAXOPE];
+    float temps[MAXOPE];
+    int exclusion[MAXOPE][MAXOPE];
+} donneeope;
 
-// struct representant les infos sur chaque ope
-typedef struct {
-    int opeT[MAX_OP]; // tab d ope
-    float temps[MAX_OP]; // tab de temps d execution pour chaque ope
-    int nbPredeces[MAX_OP]; // nb de predecesseurs pour chaque ope
-} Ope;
 
-// fonction pour initialiser la struct contrainte
-void init_mat(Contrainte *contrainte) {
-    // init les mat et tab a 0
-    for (int i = 0; i < MAX_OP; ++i) {
-        for (int j = 0; j < MAX_OP; ++j) {
-            contrainte->preced[i][j] = 0;
-            contrainte->exclusi[i][j] = 0;
+void creermatrcie(donneeope *donnees) {
+    for (int i = 0; i < MAXOPE; ++i) {
+        for (int j = 0; j < MAXOPE; ++j) {
+            donnees->precedences[i][j] = 0;
         }
-        contrainte->nbPredecesse[i] = 0;
+        donnees->nbPredecesseurs[i] = 0;
     }
-    contrainte->nbO = 0; // init le nb tot d op a 0
+    donnees->nbOperations = 0;
 }
 
-
-
-
-// fct pour lire les contraintes de precedence depuis le fichier
-void lire_Contrainte_Precedence(Contrainte *contrainte) {
-    FILE *fichier = fopen("precedences.txt", "r"); // ouvrir le fichier en mode lecture
+void lirefichierprece(donneeope *donnees) {
+    FILE *fichier = fopen("precedences.txt", "r");
     if (fichier == NULL) {
-        printf("Impossible d'ouvrir le fichier de precedences.\n"); // afficher un message d erreur si le fichier ne peut pas etre ouvert
+        printf("Impossible d'ouvrir le fichier.\n");
         return;
     }
 
-    int opeA, opeB;
-    // on lit les paires d op depuis le fichier et on met a jour les contraintes de prece
-    while (fscanf(fichier, "%d %d", &opeA, &opeB) == 2) {
-        contrainte->preced[opeA - 1][opeB - 1] = 1; // marquer la prece entre opeA et opeB dans la mat
-        contrainte->nbPredecesse[opeB - 1]++; // on met a jour le nb de predecesseur pour opeB
-        // on met a jour le nb tot d op en prenant le max entre opeA et opeB
-        contrainte->nbO = (opeA > contrainte->nbO) ? opeA : contrainte->nbO;
-        contrainte->nbO = (opeB > contrainte->nbO) ? opeB : contrainte->nbO;
+    int ope1;
+    int ope2;
+    while (fscanf(fichier, "%d %d", &ope1, &ope2) == 2) {
+        donnees->precedences[ope1 - 1][ope2 - 1] = 1;
+        donnees->nbPredecesseurs[ope2 - 1]++;
+        if (ope1 > donnees->nbOperations) {
+            donnees->nbOperations = ope1;
+        }
+
+        if (ope2 > donnees->nbOperations) {
+            donnees->nbOperations = ope2;
+        }
+
     }
 
-    fclose(fichier); // on ferme le fichier
+    fclose(fichier);
 }
 
-// fct pour lire les temps des op depuis un fichier
-void lire_Temps_Ope(Ope *ope) {
-    FILE *fichier = fopen("operations.txt", "r"); // ouvre le fichier en mode lecture
+void lirefichiertemps(donneeope *donnees) {
+    FILE *fichier = fopen("operations.txt", "r");
     if (fichier == NULL) {
-        printf("Impossible d'ouvrir le fichier des temps d'operations.\n"); // affiche un mesg d erreur si le fichier ne s ouvre pas bien
+        printf("Impossible d'ouvrir le fichier.\n");
         return;
     }
 
-    int opes;
-    float tempsO;
-    // on lit les paires d op et temps d execution depuis le fichier et on met a jour la struct op
-    while (fscanf(fichier, "%d %f", &opes, &tempsO) == 2) {
-        ope->temps[opes - 1] = tempsO; // on met a jour le temps d execution pour l op specifiee
+    int operation;
+    float tempsope;
+    while (fscanf(fichier, "%d %f", &operation, &tempsope) == 2) {
+        donnees->temps[operation - 1] = tempsope;
     }
 
-    fclose(fichier); // on ferme le fichier
+    fclose(fichier);
+}
+void lireFichierExclusions(donneeope *donnees) {
+    FILE *fichier = fopen("exclusions.txt", "r");
+    if (fichier == NULL) {
+        printf("Impossible d'ouvrir le fichier d'exclusions.\n");
+        return;
+    }
+
+    int ope1, ope2;
+    while (fscanf(fichier, "%d %d", &ope1, &ope2) == 2) {
+        donnees->exclusion[ope1 - 1][ope2 - 1] = 1;
+        donnees->exclusion[ope2 - 1][ope1 - 1] = 1;
+    }
+
+    fclose(fichier);
 }
 
 
-
-
-// fct pour afficher le graphe de precedence
-void afficher_Graphe_Precedence_exclus(Contrainte *contrainte) {
+void afficherGraphePrecedenceConsole(donneeope *donnees) {
     printf("Graphe de precedence :\n");
-    // on parcours chaque op dans le graphe
-    for (int i = 0; i < contrainte->nbO; ++i) {
-        printf("Ope %d : ", i + 1);
-        // on parcours chaque op qui est liee par une precedence
-        for (int j = 0; j < contrainte->nbO; ++j) {
-            if (contrainte->preced[i][j]) {
-                printf("%d -> %d   ", i + 1, j + 1); // on affiche la relation de precedence entre les opes
+    for (int i = 0; i < donnees->nbOperations; ++i) {
+        printf("operation %d : ", i + 1);
+        for (int j = 0; j < donnees->nbOperations; ++j) {
+            if (donnees->precedences[i][j]) {
+                printf("%d -> %d   ", i + 1, j + 1);
+            }
+        }
+        printf("\n");
+    }
+}
+void afficherGrapheexcluConsole(donneeope *donnees) {
+    printf("Graphe de exclu :\n");
+    for (int i = 0; i < donnees->nbOperations; ++i) {
+        printf("operation %d : ", i + 1);
+        for (int j = 0; j < donnees->nbOperations; ++j) {
+            if (donnees->exclusion[i][j]) {
+                printf("%d -> %d   ", i + 1, j + 1);
             }
         }
         printf("\n");
     }
 }
 
-// fct pour trier les opes en fct du nb de predecesseurs
-void trier_Ope(Ope *ope, Contrainte *contrainte) {
-    // algo de tri a bulles
-    for (int i = 0; i < contrainte->nbO - 1; ++i) {
-        for (int j = 0; j < contrainte->nbO - i - 1; ++j) {
-            // on echange les ope si le nb de predecesseurs est + grand pour la 1ere ope
-            if (ope->nbPredeces[j] > ope->nbPredeces[j + 1]) {
-                int temp = ope->nbPredeces[j];
-                ope->nbPredeces[j] = ope->nbPredeces[j + 1];
-                ope->nbPredeces[j + 1] = temp;
+void trierOperations(donneeope *donnees) {
+    //Initialiser operations triees
+    for (int i = 0; i < donnees->nbOperations; ++i) {
+        donnees->operationsTriees[i] = i;
+    }
 
-                // on echange les identifiant des opes correspondantes
-                temp = ope->opeT[j];
-                ope->opeT[j] = ope->opeT[j + 1];
-                ope->opeT[j + 1] = temp;
+    //Tri à bulles
+    for (int i = 0; i < donnees->nbOperations - 1; ++i) {
+        for (int j = 0; j < donnees->nbOperations - i - 1; ++j) {
+            if (donnees->nbPredecesseurs[j] > donnees->nbPredecesseurs[j + 1]) {
+                // echanger les positions des operations et de leurs nombres de predecesseurs
+                int temp = donnees->nbPredecesseurs[j];
+                donnees->nbPredecesseurs[j] = donnees->nbPredecesseurs[j + 1];
+                donnees->nbPredecesseurs[j + 1] = temp;
+
+                temp = donnees->operationsTriees[j];
+                donnees->operationsTriees[j] = donnees->operationsTriees[j + 1];
+                donnees->operationsTriees[j + 1] = temp;
             }
         }
     }
 }
 
+void tritopo(donneeope *donnees) {
+    int degre[MAXOPE] = {0};
+    int queue[MAXOPE];
+    int devant = 0;
+    int derriere = -1;
 
-// fct pour faire un tri topologique pour les opes
-void tri_Topologiq(Contrainte *contrainte, Ope *ope) {
-    int deg[MAX_OP] = {0}; // tab pour stocker le deg entrant de chaque op
-    int fi[MAX_OP]; // file pour stocker les opes sans prececesseurs
-    int ava = 0, arri = -1; // indice pour l avant et l arriere de la file
-
-    // calc le deg entrant de chaque ope
-    for (int i = 0; i < contrainte->nbO; ++i) {
-        int act = ope->opeT[i];
-        for (int j = 0; j < contrainte->nbO; ++j) {
-            if (contrainte->preced[j][act]) {
-                deg[act]++;
+    // Initialiser file
+    for (int i = 0; i < donnees->nbOperations; ++i) {
+        int current = donnees->operationsTriees[i];
+        for (int j = 0; j < donnees->nbOperations; ++j) {
+            if (donnees->precedences[j][current]) {
+                degre[current]++;
             }
         }
-        // on rajoute les op sans predecesseur a la file
-        if (deg[act] == 0) {
-            fi[++arri] = act;
+        if (degre[current] == 0) {
+            queue[++derriere] = current;
         }
     }
 
-    // on fait le tri topo a l aide d une file
-    while (ava <= arri) {
-        int act = fi[ava++];
-        ope->opeT[ava - 1] = act; // on a joute l op a la sequence triee
+    //tri topologique
+    while (devant <= derriere) {
+        int current = queue[devant++];
+        donnees->operationsTriees[devant - 1] = current;
 
-        // on met a jour le deg entrant des opes adjacentes
-        for (int i = 0; i < contrainte->nbO; ++i) {
-            if (contrainte->preced[act][i]) {
-                // reduire le deg entrant et ajouter a la fiule si le deg = 0
-                if (--deg[i] == 0) {
-                    fi[++arri] = i;
+        for (int i = 0; i < donnees->nbOperations; ++i) {
+            if (donnees->precedences[current][i]) {
+                if (--degre[i] == 0) {
+                    queue[++derriere] = i;
                 }
             }
         }
     }
 }
 
-
-
-
-
-
-
-
-
-// fct pour calc la somme des tmps d execution des opes dans une sequence
-float calculer_Somme_Temps(Ope *ope, Contrainte *contrainte) {
+float calculerSommeTemps(donneeope *donnees) {
     float somme = 0;
-    // on parcours la sequence triee d op et on aditionne les tmps dexecution
-    for (int i = 0; i < contrainte->nbO; ++i) {
-        somme += ope->temps[ope->opeT[i]];
+    for (int i = 0; i < donnees->nbOperations; ++i) {
+        somme += donnees->temps[donnees->operationsTriees[i]];
     }
     return somme;
-}
-
-// fct pour verif si 2 opes sont mutuellement exclusives
-int est_exclus(Contrainte *contrainte, int opeA, int opeB) {
-    return contrainte->exclusi[opeA][opeB] || contrainte->exclusi[opeB][opeA];
-}
-
-// fct pour lire le tmps de cycle max
-float lire_Temps_Cycle_Max() {
-    FILE *fichierCycle = fopen("temps_cycle.txt", "r"); // Ouvrir le fichier en mode lecture
-    if (fichierCycle == NULL) {
-        printf("Impossible d'ouvrir le fichier temps_cycle.txt.\n");
-        exit(1);
-    }
-
-    float tempsCycl;
-    // lecture du tmps de cycle avec le fichier
-    if (fscanf(fichierCycle, "%f", &tempsCycl) != 1) {
-        printf("Erreur de lecture du temps de cycle.\n");
-        fclose(fichierCycle);
-        exit(1);
-    }
-
-    fclose(fichierCycle); // fermer le fichier
-    return tempsCycl;
-}
-
-// mat d exclusion tot et nb tot d opes
-int exclusion_Totale[MAX_OP][MAX_OP] = {0};
-int nombre_Op = 0;
-
-// fct pour lire les exclusions avec le fichier
-void lire_Exclusions(const char *nom_Fichier) {
-    FILE *fichier = fopen(nom_Fichier, "r"); // ouverture du fichier
-    if (fichier == NULL) {
-        perror("Erreur lors de la lecture du fichier d'exclusions");
-        exit(EXIT_FAILURE);
-    }
-
-    int op1, op2;
-    // on lit les opes mutuellement exclusives
-    while (fscanf(fichier, "%d %d", &op1, &op2) == 2) {
-        exclusion_Totale[op1 - 1][op2 - 1] = 1; // Marquer l'exclusion mutuelle dans la matrice
-        exclusion_Totale[op2 - 1][op1 - 1] = 1;
-        // on met a jour le nb tot d opes si c est necessaire
-        if (op1 > nombre_Op) {
-            nombre_Op = op1;
-        }
-        if (op2 > nombre_Op) {
-            nombre_Op = op2;
-        }
-    }
-
-    fclose(fichier); // fermeture fichier
-}
-
-
-
-
-
-
-
-
-
-// fct pour trouver le nb max de stations utilisees dans une sequence
-int trouver_Nombre_Stations(int stations[MAX_OP], int nb_Stations) {
-    int max_Station = 0;
-    // parcourir les opes et trouver le nb max de stations
-    for (int i = 0; i < nombre_Op; i++) {
-        if (stations[i] > max_Station) {
-            max_Station = stations[i];
-        }
-    }
-    return max_Station;
-}
-
-// fct pour donner des couleurs (stations) aux opes dans le graph
-void colorier_Graphe(int stations[MAX_OP]) {
-    // parcourir chaque ope
-    for (int i = 0; i < nombre_Op; i++) {
-        // parcourir les couleurs possibles et trouver une couleur ok
-        for (int couleur = 1; ; couleur++) {
-            int valide = 1;
-            // verif si l ope a une exclusion mutuelle avec une ope de la mm couleur
-            for (int j = 0; j < nombre_Op; j++) {
-                if (exclusion_Totale[i][j] && stations[j] == couleur) {
-                    valide = 0;
-                    break;
-                }
-            }
-            // si couleur valide on l attribue a l ope
-            if (valide) {
-                stations[i] = couleur;
-                break;
-            }
-        }
-    }
-}
-
-
-
-
-int main() {
-    Contrainte contrainte;
-    Ope ope;
-
-    // init la struct contraintes
-    init_mat(&contrainte);
-
-    // on lit les contraintes de precedence avec le fichier
-    lire_Contrainte_Precedence(&contrainte);
-
-    // afficher le graphe de precedence avec exclusions mutuelles
-    afficher_Graphe_Precedence_exclus(&contrainte);
-
-    // init la sequence des opes dans l ordre initial
-    for (int i = 0; i < contrainte.nbO; ++i) {
-        ope.opeT[i] = i;
-    }
-
-    // on trie les opes en fct du nb de predecesseurs
-    trier_Ope(&ope, &contrainte);
-
-    // on effectue le trie topologique sur la sequence triee des opes
-    tri_Topologiq(&contrainte, &ope);
-
-    // affiche l ordre trie des opes
-    printf("\nOrdre trie des ope : ");
-    for (int i = 0; i < contrainte.nbO; ++i) {
-        printf("%d ", ope.opeT[i] + 1);
-    }
-    printf("\n");
-
-    // on lit les tmps d execution des opes depuis le fichier
-    lire_Temps_Ope(&ope);
-
-    // on calc la somme des tmps d execution pour la sequence triee des opes
-    float somme_Temps = calculer_Somme_Temps(&ope, &contrainte);
-    printf("Somme des temps : %.2f\n", somme_Temps);
-
-    // on lit le tmps de cycle max
-    float temps_Cycle_Max = lire_Temps_Cycle_Max();
-    printf("\nTemps maximum pour constituer une station : %.2f\n", temps_Cycle_Max);
-
-    // on lit les exclusions
-    const char *nom_Fichier_Exclusions = "exclusions.txt";
-    lire_Exclusions(nom_Fichier_Exclusions);
-
-    // init un tab pour stocker les stations attribuees aux opes
-    int stations[MAX_OP] = {0};
-
-    // attribuer des couleurs (stations) aux opes dans le graph
-    colorier_Graphe(stations);
-
-    // trouver le nb tot de stations (couleurs) utilisees
-    int nb_Stations = trouver_Nombre_Stations(stations, MAX_OP);
-
-    // afficher la repartition des op par station
-    printf("Repartition des ope par station (nombre de stations = %d) :\n", nb_Stations);
-    for (int i = 0; i < nb_Stations; i++) {
-        printf("Station %d :", i + 1);
-        for (int j = 0; j < nombre_Op; j++) {
-            if (stations[j] == i + 1) {
-                printf(" %d", j + 1);
-            }
-        }
-        printf("\n");
-    }
-
-    return 0;
 }
